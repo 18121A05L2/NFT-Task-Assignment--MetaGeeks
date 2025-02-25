@@ -1,66 +1,86 @@
-## Foundry
+# NFT Task Assignment – Digital Art Collection
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+## Objective
 
-Foundry consists of:
+Design and implement an NFT smart contract using Solidity that manages a collection of digital art tokens. The contract should enable minting, sales, and retrieval of token metadata.
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+---
 
-## Documentation
+## Task Requirements
 
-https://book.getfoundry.sh/
+### ERC-721 Implementation
 
-## Usage
+- Build your contract based on the **ERC-721 standard** using OpenZeppelin libraries.
 
-### Build
+### Minting Functionality
 
-```shell
-$ forge build
+- Implement a function to allow minting of new NFTs.
+- Ensure each NFT has a **unique metadata URI** (e.g., pointing to digital artwork).
+
+### Sale Mechanism
+
+- Implement a **basic sale function** that enables users to purchase NFTs at a fixed price.
+- Ensure the contract **logs purchase events** properly.
+
+### Metadata Management
+
+- Store and manage **unique metadata URIs** for each token.
+
+### Access Control & Security
+
+- Restrict administrative functions (such as setting the base URI or managing sales) to **authorized addresses** (e.g., the contract owner).
+- Follow **best practices** to secure the contract against common vulnerabilities.
+
+### Testing
+
+- Write tests using **Foundry** to cover the following scenarios:
+  - Successful **minting** and **metadata retrieval**.
+  - NFT **purchase** and correct **fund handling**.
+  - **Edge cases**, such as purchasing when sales are closed.
+
+---
+
+## Submission Guidelines
+
+1. Provide the **Solidity code** for your NFT contract.
+2. Include **clear instructions** on how to **deploy and test** the contract.
+3. Optionally, add a **brief explanation** of your design decisions and any **potential improvements** for a production-ready version.
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+Ensure you have the following installed:
+
+- [Foundry](https://getfoundry.sh/)
+- [OpenZeppelin Contracts](https://github.com/OpenZeppelin/openzeppelin-contracts)
+
+### Installation
+
+```sh
+forge install
 ```
 
-### Test
+### Deployment
 
-```shell
-$ forge test
+1. Configure your **environment variables** (e.g., private key, RPC URL).
+2. Deploy the contract:
+
+```sh
+forge script script/Deploy.s.sol --broadcast --rpc-url <RPC_URL> --private-key <PRIVATE_KEY>
 ```
 
-### Format
+### Running Tests
 
-```shell
-$ forge fmt
+```sh
+forge test
 ```
 
-### Gas Snapshots
+---
 
-```shell
-$ forge snapshot
-```
+## License
 
-### Anvil
+This project is licensed under the MIT License.
 
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
