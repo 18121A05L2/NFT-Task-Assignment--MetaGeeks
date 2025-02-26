@@ -69,7 +69,7 @@ forge install
 2. Deploy the contract:
 
 ```sh
-forge script script/Deploy.s.sol --broadcast --rpc-url <RPC_URL> --private-key <PRIVATE_KEY>
+forge script script/GenesisNfts.s.sol --rpc-url $(SEPOLIA_RPC_URL) --account Real_account_private_key  --broadcast --verify --etherscan-api-key $(ETHER_SCAN_API)
 ```
 
 ### Running Tests
@@ -83,4 +83,3 @@ forge test
 ## License
 
 This project is licensed under the MIT License.
-
