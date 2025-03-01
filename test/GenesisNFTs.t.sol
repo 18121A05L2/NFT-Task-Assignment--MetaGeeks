@@ -14,6 +14,9 @@ contract TestNfts is Test, Constants {
     address secondRandom;
     uint256 secondPrivateKey;
 
+    uint256 notMinPrice = 0.02 ether;
+    uint256 gtThanMinSellPrice = 0.3 ether;
+
     function setUp() public {
         genesisNFTs = new GenesisNFTs_Script().run();
         (randomAddress, randPrivateKey) = makeAddrAndKey("randomAddress");
@@ -57,11 +60,7 @@ contract TestNfts is Test, Constants {
         genesisNFTs.mint(OWNER);
     }
 
-    function testSellFunction() public mintSomeNfts {
-        uint256 notMinPrice = 0.02 ether;
-        uint256 gtThanMinSellPrice = 0.3 ether;
-        uint256 tokenId = 1;
-
+    function testSellFunctionReverts() public mintSomeNfts {
         vm.startPrank(secondRandom);
         vm.expectRevert(abi.encodeWithSelector(IERC721Errors.ERC721InvalidOwner.selector, secondRandom));
         genesisNFTs.sell(1, notMinPrice);
@@ -73,26 +72,51 @@ contract TestNfts is Test, Constants {
 
         vm.expectRevert(GenesisNFTs.GenesisNFTs_SaleClosed.selector);
         genesisNFTs.sell(1, gtThanMinSellPrice);
-
-        vm.store(address(genesisNFTs), bytes32(uint256(6)), bytes32(abi.encode(true)));
-        assertEq(genesisNFTs.isSaleOpen(), true);
-        genesisNFTs.sell(1, gtThanMinSellPrice);
         vm.stopPrank();
     }
 
-    function testBuyBasedOnSaleIsOpenedOrNot() public mintSomeNfts {
+    function testSellFunctionSuccess() public mintSomeNfts {
+        vm.startPrank(randomAddress);
+
+        vm.store(address(genesisNFTs), bytes32(uint256(6)), bytes32(abi.encode(true)));
+        assertEq(genesisNFTs.isSaleOpen(), true);
+
+        genesisNFTs.approve(address(genesisNFTs), 1);
+        genesisNFTs.sell(1, gtThanMinSellPrice);
+        assertEq(genesisNFTs.ownerOf(1), address(genesisNFTs));
+        vm.stopPrank();
+    }
+
+    function testBuyBasedOnSaleIsOpenedOrNot() public {
         vm.expectRevert(GenesisNFTs.GenesisNFTs_NotAvailableForSale.selector);
         genesisNFTs.buy(randomAddress, 1, randomAddress);
 
-        testSellFunction();
-        vm.prank(randomAddress);
-        genesisNFTs.transferFrom(randomAddress, address(genesisNFTs), 1);
-        vm.store(address(genesisNFTs), bytes32(uint256(6)), bytes32(abi.encode(true)));
+        testSellFunctionSuccess();
+
+        uint256 secondRandomBalance = address(secondRandom).balance;
+        uint256 randomBalance = address(randomAddress).balance;
+        uint256 contractBalance = address(genesisNFTs).balance;
 
         (uint256 price,, address owner) = genesisNFTs.nftSaleInfo(1);
+        (uint256 finalAmountReceivedToSeller, uint256 feeCollectedByContract) = genesisNFTs.calculateFees(1);
         vm.prank(secondRandom);
         genesisNFTs.buy{value: price}(secondRandom, 1, owner);
         assertEq(genesisNFTs.ownerOf(1), secondRandom);
-        assert(address(randomAddress).balance > 0);
+        assertEq(address(randomAddress).balance, randomBalance + finalAmountReceivedToSeller);
+        assertEq(address(secondRandom).balance, secondRandomBalance - price);
+        assertEq(address(genesisNFTs).balance, contractBalance + feeCollectedByContract);
+    }
+
+    function testCancelOrSellFunction() public {
+        testSellFunctionSuccess();
+
+        vm.startPrank(randomAddress);
+        genesisNFTs.cancelSellOrder(1);
+        assertEq(genesisNFTs.ownerOf(1), randomAddress);
+        vm.stopPrank();
+        (uint256 price, bool isOpenForSale, address owner) = genesisNFTs.nftSaleInfo(1);
+        assertEq(owner, address(0));
+        assertEq(isOpenForSale, false);
+        assertEq(price, 0);
     }
 }

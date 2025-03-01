@@ -72,9 +72,10 @@ contract GenesisNFTs is ERC721 {
     function buy(address to, uint256 tokenId, address nftOwner) external payable {
         if (nftSaleInfo[tokenId].isOpenForSale == false) revert GenesisNFTs_NotAvailableForSale();
         if (msg.value < nftSaleInfo[tokenId].price) revert GenesisNFTs_SalePriceNotMet();
+        if (ownerOf(tokenId) != address(this)) revert ERC721InvalidOwner(msg.sender);
+        approveToBuyer(to, tokenId);
         transferFrom(address(this), to, tokenId);
-        uint256 fee = nftSaleInfo[tokenId].price * feePercent / 100;
-        uint256 finalAmount = nftSaleInfo[tokenId].price - fee;
+        (uint256 finalAmount,) = calculateFees(tokenId);
         (bool success,) = nftOwner.call{value: finalAmount}(""); // TODO : need to check why payable is not required here
         if (!success) revert GenesisNFTs_FundsTransferFailed();
     }
@@ -88,27 +89,30 @@ contract GenesisNFTs is ERC721 {
         if (ownerOf(tokenId) != msg.sender) revert ERC721InvalidOwner(msg.sender);
         if (price < salePrice) revert GenesisNFTs_MinimumSalePriceNotMet();
         if (!isSaleOpen) revert GenesisNFTs_SaleClosed();
+        transferFrom(msg.sender, address(this), tokenId);
         nftSaleInfo[tokenId] = NFTSale({price: price, isOpenForSale: true, owner: msg.sender});
     }
 
     /**
      * @notice This function is to remove NFT from sale
+     * when user executes this we are sending the NFT back to the user
      * @param tokenId unique NFT number
      */
     function cancelSellOrder(uint256 tokenId) external {
         if (nftSaleInfo[tokenId].isOpenForSale == false) revert GenesisNFTs_SellOrderNotPlaced();
         if (ownerOf(tokenId) != address(this)) revert ERC721InvalidOwner(msg.sender);
-        nftSaleInfo[tokenId] = NFTSale({price: 0, isOpenForSale: false, owner: msg.sender});
+        approveToBuyer(msg.sender, tokenId);
+        transferFrom(address(this), msg.sender, tokenId);
+        nftSaleInfo[tokenId] = NFTSale({price: 0, isOpenForSale: false, owner: address(0)});
     }
 
-    function transferFrom(address from, address to, uint256 tokenId) public override {
-        if (to == address(0)) {
-            revert ERC721InvalidReceiver(address(0));
-        }
-        address previousOwner = _update(to, tokenId, from);
-        if (previousOwner != from) {
-            revert ERC721IncorrectOwner(from, tokenId, previousOwner);
-        }
+    function approveToBuyer(address to, uint256 tokenId) internal {
+        _approve(to, tokenId, address(this));
+    }
+
+    function calculateFees(uint256 tokenId) public view returns (uint256 finalAmount, uint256 fee) {
+        fee = nftSaleInfo[tokenId].price * feePercent / 100;
+        finalAmount = nftSaleInfo[tokenId].price - fee;
     }
 
     function _baseURI() internal pure override returns (string memory) {
